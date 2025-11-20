@@ -1,72 +1,651 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Enough Game</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Player One: Hire Me</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00F0FF;
+            font-size: 24px;
+            text-shadow: 0 0 10px #00F0FF;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #message-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #FFFFFF;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 20px #FFFFFF;
+            pointer-events: none;
+            z-index: 15;
+            display: none;
+            text-align: center;
+        }
+
+        #main-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 20;
+        }
+
+        #main-menu h1 {
+            color: #00F0FF;
+            font-size: 64px;
+            text-shadow: 0 0 20px #00F0FF;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+        }
+
+        #credits {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: white;
+            font-size: 14px;
+            font-family: sans-serif;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.35);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #F806CC;
+            font-size: 48px;
+            text-align: center;
+            text-shadow: 0 0 20px #F806CC;
+            z-index: 20;
+        }
+
+        #contact-email {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #FFFFFF;
+            text-shadow: 0 0 10px #FFFFFF;
+            font-family: sans-serif;
+        }
+
+        button {
+            background: transparent;
+            border: 2px solid #00F0FF;
+            color: #00F0FF;
+            padding: 10px 20px;
+            font-size: 24px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-family: inherit;
+            text-shadow: 0 0 5px #00F0FF;
+            box-shadow: 0 0 10px #00F0FF;
+        }
+
+        button:hover {
+            background: #00F0FF;
+            color: #000;
+        }
+
+        /* --- MOBILE OPTIMIZATION --- */
+        #rotate-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #00F0FF;
+            text-align: center;
+        }
+
+        #mobile-controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            height: 150px;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+            /* Hidden by default, shown on touch */
+        }
+
+        .control-btn {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid rgba(0, 240, 255, 0.5);
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.2);
+            pointer-events: auto;
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: rgba(0, 240, 255, 0.8);
+            user-select: none;
+        }
+
+        .control-btn:active {
+            background: rgba(0, 240, 255, 0.3);
+        }
+
+        #btn-left {
+            bottom: 20px;
+            left: 20px;
+        }
+
+        #btn-right {
+            bottom: 20px;
+            left: 100px;
+        }
+
+        #btn-up {
+            bottom: 90px;
+            right: 60px;
+        }
+
+        #btn-down {
+            bottom: 20px;
+            right: 60px;
+        }
+
+        @media (max-width: 768px) {
+            #main-menu h1 {
+                font-size: 40px;
+            }
+
+            #game-over {
+                font-size: 32px;
+            }
+
+            button {
+                font-size: 18px;
+                padding: 8px 16px;
+            }
+
+            /* Show controls on small screens (assuming touch) */
+            #mobile-controls {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: portrait) {
+            #rotate-overlay {
+                display: flex;
+            }
+        }
+    </style>
+    <!-- Import Map for Three.js and Addons -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
+
 <body>
-    <div class="game-container">
-        <div class="header">
-            <h1>The Enough Game</h1>
-        </div>
+    <div id="ui">SCORE: <span id="score">0</span></div>
+    <div id="message-overlay"></div>
 
-        <div id="game-area">
-            <div class="game-stats">
-                <div class="stat-card">
-                    <h3>Money</h3>
-                    <div class="stat-value" id="money">$0</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Needs Secured</h3>
-                    <div class="stat-value" id="needs-count">0/4</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Wants Acquired</h3>
-                    <div class="stat-value" id="wants-count">0</div>
-                </div>
-            </div>
-
-            <div class="income-section">
-                <button class="income-button" id="work-button">Work ($50)</button>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="work-progress"></div>
-                </div>
-            </div>
-
-            <div id="message-area"></div>
-
-            <div class="cards-section">
-                <div class="card-category needs">
-                    <h3>Essential Needs</h3>
-                    <div id="needs-cards"></div>
-                </div>
-                <div class="card-category wants">
-                    <h3>Desires & Wants</h3>
-                    <div id="wants-cards"></div>
-                </div>
-            </div>
-
-            <div class="risks-section hidden" id="risks-section">
-                <h3>Take a Risk?</h3>
-                <button class="risk-button fair" id="fair-risk">Option A</button>
-                <button class="risk-button" id="unwise-risk">Option B</button>
-            </div>
-
-            <div class="actions">
-                <button class="action-button end-game" id="end-game">I Have Enough - End Game</button>
-                <button class="action-button" id="restart-game">Restart Game</button>
-            </div>
-        </div>
-
-        <div id="game-over" class="game-over hidden">
-            <h2 id="game-result"></h2>
-            <p id="game-feedback"></p>
-            <button class="action-button" id="play-again">Play Again</button>
-        </div>
+    <div id="rotate-overlay">
+        <h1>PLEASE ROTATE DEVICE</h1>
+        <p>Landscape mode required</p>
     </div>
 
-    <script src="game.js"></script>
+    <div id="main-menu">
+        <h1>Player One:<br>Hire Me</h1>
+        <button id="start-btn">START GAME</button>
+    </div>
+
+    <div id="credits">Made with Antigravity + Gemini Pro 3</div>
+
+    <div id="game-over">
+        <div>GAME OVER</div>
+        <div id="contact-email">mika.raharison@proton.me</div>
+        <button id="restart-btn">RESTART</button>
+    </div>
+
+    <div id="mobile-controls">
+        <div id="btn-left" class="control-btn">←</div>
+        <div id="btn-right" class="control-btn">→</div>
+        <div id="btn-up" class="control-btn">↑</div>
+        <div id="btn-down" class="control-btn">↓</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // --- CONFIGURATION ---
+        const COLORS = {
+            background: 0x050011,
+            purple: 0x2E0249,
+            pink: 0xF806CC,
+            cyan: 0x00F0FF,
+            grid: 0x570A57
+        };
+
+        const MESSAGE_LIST = [
+            "THANKS FOR SCANNING THE QR CODE",
+            "I AM A SELF-TAUGHT PROGRAMMER.",
+            "I LOVE INTERACTIVE EXPERIENCES",
+            "UNITY, C#, THREE.JS, JS/TS",
+            "THOSE ARE JUST TOOLS.",
+            "BUT I KNOW HOW TO USE THEM.",
+            "I ALSO KNOW HOW TO USE AI",
+            "TO SPEED THINGS UP.",
+            "IF YOU LIKE WHAT YOU SEE",
+            "LET'S SCHEDULE AN INTERVIEW!",
+        ];
+        const MESSAGE_DURATION = 2000; // ms visible
+        const MESSAGE_INTERVAL = 1000; // ms hidden
+
+        // --- STATE ---
+        const state = {
+            score: 0,
+            gameOver: false,
+            gameStarted: false,
+            speed: 0.4,
+            shake: {
+                intensity: 0,
+                decay: 0.90
+            },
+            message: {
+                index: 0,
+                timer: 0,
+                showing: false
+            }
+        };
+
+        let lastTime = performance.now();
+
+        // --- SCENE SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(COLORS.background);
+        scene.fog = new THREE.FogExp2(COLORS.background, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 5);
+        camera.lookAt(0, 0, -10);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: false }); // Post-processing handles AA usually, or we trade it for performance
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        // --- POST PROCESSING ---
+        const renderScene = new RenderPass(scene, camera);
+
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 2.0; // High intensity for neon look
+        bloomPass.radius = 0.5;
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        // --- HELPERS ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', onWindowResize);
+
+        // --- ENVIRONMENT ---
+
+        // 1. Moving Starfield
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 2000;
+        const starPositions = new Float32Array(starCount * 3);
+        const starVelocities = [];
+
+        for (let i = 0; i < starCount; i++) {
+            starPositions[i * 3] = (Math.random() - 0.5) * 100; // x
+            starPositions[i * 3 + 1] = (Math.random() - 0.5) * 100; // y
+            starPositions[i * 3 + 2] = (Math.random() - 0.5) * 100 - 50; // z
+            starVelocities.push(0.2 + Math.random() * 0.5); // Individual speed variance
+        }
+
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.2,
+            transparent: true,
+            opacity: 0.8
+        });
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // 2. Retro Grid Floor
+        // We create a large plane with a grid shader or texture, but for simplicity and style, 
+        // let's use a GridHelper and move it to simulate infinite scrolling.
+        const gridSize = 200;
+        const gridDivisions = 40;
+        const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, COLORS.pink, COLORS.purple);
+        gridHelper.position.y = -2; // Below player
+        gridHelper.position.z = -50; // Center ahead
+        scene.add(gridHelper);
+
+        // Duplicate grid for seamless looping if needed, or just reset position
+        const gridHelper2 = new THREE.GridHelper(gridSize, gridDivisions, COLORS.pink, COLORS.purple);
+        gridHelper2.position.y = -2;
+        gridHelper2.position.z = -50 - gridSize; // Behind the first one
+        scene.add(gridHelper2);
+
+
+        // --- PLAYER ---
+        const playerGroup = new THREE.Group();
+
+        // Ship Body
+        const bodyGeo = new THREE.ConeGeometry(0.5, 2, 4);
+        bodyGeo.rotateX(Math.PI / 2);
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: COLORS.cyan,
+            emissive: COLORS.cyan,
+            emissiveIntensity: 0.5,
+            roughness: 0.4,
+            metalness: 0.8
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        playerGroup.add(body);
+
+        // Ship Wings
+        const wingGeo = new THREE.BoxGeometry(2, 0.1, 0.5);
+        const wingMat = new THREE.MeshStandardMaterial({
+            color: COLORS.purple,
+            emissive: COLORS.purple,
+            emissiveIntensity: 0.5
+        });
+        const wing = new THREE.Mesh(wingGeo, wingMat);
+        wing.position.z = 0.5;
+        playerGroup.add(wing);
+
+        scene.add(playerGroup);
+
+        // Initial Position
+        playerGroup.position.y = 0;
+        playerGroup.position.z = -2;
+
+        // --- INPUT ---
+        const input = { left: false, right: false, up: false, down: false };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') input.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') input.right = true;
+            if (e.key === 'ArrowUp' || e.key === 'w') input.up = true;
+            if (e.key === 'ArrowDown' || e.key === 's') input.down = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') input.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') input.right = false;
+            if (e.key === 'ArrowUp' || e.key === 'w') input.up = false;
+            if (e.key === 'ArrowDown' || e.key === 's') input.down = false;
+        });
+
+        // Touch Controls
+        const setupTouch = (id, key) => {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); input[key] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); input[key] = false; });
+        };
+        setupTouch('btn-left', 'left');
+        setupTouch('btn-right', 'right');
+        setupTouch('btn-up', 'up');
+        setupTouch('btn-down', 'down');
+
+        // --- ENEMIES ---
+        const enemies = [];
+        const enemyGeo = new THREE.BoxGeometry(1, 1, 1);
+        const enemyEdges = new THREE.EdgesGeometry(enemyGeo);
+        const enemyMat = new THREE.LineBasicMaterial({ color: COLORS.pink, linewidth: 2 });
+
+        function spawnEnemy() {
+            if (state.gameOver || !state.gameStarted) return;
+
+            const enemy = new THREE.LineSegments(enemyEdges, enemyMat);
+            // Random position ahead
+            enemy.position.x = (Math.random() - 0.5) * 16; // Range -8 to 8
+            enemy.position.y = (Math.random() - 0.5) * 6;  // Range -3 to 3
+            enemy.position.z = -60; // Start far away
+
+            // Random rotation for visual interest
+            enemy.rotation.z = Math.random() * Math.PI;
+            enemy.rotation.x = Math.random() * Math.PI;
+
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+
+        // Spawn interval
+        setInterval(spawnEnemy, 1000);
+
+        // --- COLLISION & GAME LOGIC ---
+        function checkCollision(player, enemy) {
+            const dx = player.position.x - enemy.position.x;
+            const dy = player.position.y - enemy.position.y;
+            const dz = player.position.z - enemy.position.z;
+            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            return distance < 1.5; // Hitbox size
+        }
+
+        function gameOver() {
+            state.gameOver = true;
+            document.getElementById('game-over').style.display = 'flex';
+
+            // Hide message overlay
+            const msgOverlay = document.getElementById('message-overlay');
+            msgOverlay.style.display = 'none';
+            state.message.showing = false;
+        }
+
+        function startGame() {
+            state.gameStarted = true;
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('credits').style.display = 'none';
+            lastTime = performance.now();
+        }
+
+        function resetGame() {
+            state.gameOver = false;
+            state.gameStarted = true; // Ensure game is started on restart
+            state.score = 0;
+            state.speed = 0.4;
+
+            // Reset Message State
+            state.message.index = 0;
+            state.message.timer = 0;
+            state.message.showing = false;
+            document.getElementById('message-overlay').style.display = 'none';
+
+            document.getElementById('score').innerText = '0';
+            document.getElementById('game-over').style.display = 'none';
+
+            // Remove all enemies
+            for (let enemy of enemies) {
+                scene.remove(enemy);
+            }
+            enemies.length = 0;
+
+            // Reset player
+            playerGroup.position.set(0, 0, -2);
+            playerGroup.rotation.set(0, 0, 0);
+
+            lastTime = performance.now();
+            // animate(); // Loop is already running
+        }
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', resetGame);
+
+        // --- GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = performance.now();
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // --- VISUALS (ALWAYS RUN) ---
+
+            // Shake Logic
+            if (state.shake.intensity > 0) {
+                const rx = (Math.random() - 0.5) * state.shake.intensity;
+                const ry = (Math.random() - 0.5) * state.shake.intensity;
+                camera.position.set(0 + rx, 2 + ry, 5);
+                state.shake.intensity *= state.shake.decay;
+                if (state.shake.intensity < 0.01) {
+                    state.shake.intensity = 0;
+                    camera.position.set(0, 2, 5);
+                }
+            } else {
+                // Ensure camera is reset if not shaking
+                camera.position.set(0, 2, 5);
+            }
+
+            // Environment Animation
+            // Move Stars
+            const positions = stars.geometry.attributes.position.array;
+            for (let i = 0; i < starCount; i++) {
+                // Move star towards camera (positive Z)
+                positions[i * 3 + 2] += state.speed * 0.5;
+
+                // Reset if passes camera
+                if (positions[i * 3 + 2] > 10) {
+                    positions[i * 3 + 2] = -100;
+                    // Randomize X/Y again for variety
+                    positions[i * 3] = (Math.random() - 0.5) * 100;
+                    positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+                }
+            }
+            stars.geometry.attributes.position.needsUpdate = true;
+
+            // Move Grid
+            gridHelper.position.z += state.speed;
+            gridHelper2.position.z += state.speed;
+
+            if (gridHelper.position.z > 150) gridHelper.position.z -= 400;
+            if (gridHelper2.position.z > 150) gridHelper2.position.z -= 400;
+
+            // --- GAME LOGIC (ONLY IF PLAYING) ---
+            if (state.gameStarted && !state.gameOver) {
+                // Message Logic
+                state.message.timer += deltaTime;
+                const msgOverlay = document.getElementById('message-overlay');
+
+                if (state.message.showing) {
+                    if (state.message.timer > MESSAGE_DURATION) {
+                        // Hide
+                        state.message.showing = false;
+                        state.message.timer = 0;
+                        msgOverlay.style.display = 'none';
+                    }
+                } else {
+                    if (state.message.timer > MESSAGE_INTERVAL) {
+                        // Show next
+                        state.message.showing = true;
+                        state.message.timer = 0;
+
+                        // Update text
+                        msgOverlay.innerText = MESSAGE_LIST[state.message.index];
+                        msgOverlay.style.display = 'block';
+
+                        // Cycle index
+                        state.message.index = (state.message.index + 1) % MESSAGE_LIST.length;
+                    }
+                }
+
+                // Player Movement
+                const speed = 0.15;
+                if (input.left) playerGroup.position.x -= speed;
+                if (input.right) playerGroup.position.x += speed;
+                if (input.up) playerGroup.position.y += speed;
+                if (input.down) playerGroup.position.y -= speed;
+
+                // Boundaries
+                playerGroup.position.x = Math.max(-8, Math.min(8, playerGroup.position.x));
+                playerGroup.position.y = Math.max(-3, Math.min(4, playerGroup.position.y));
+
+                // Bank effect
+                playerGroup.rotation.z = -playerGroup.position.x * 0.05;
+                playerGroup.rotation.x = -playerGroup.position.y * 0.05;
+
+                // Enemy Logic
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const enemy = enemies[i];
+                    enemy.position.z += state.speed;
+                    enemy.rotation.x += 0.02;
+                    enemy.rotation.y += 0.02;
+
+                    // Collision
+                    if (checkCollision(playerGroup, enemy)) {
+                        state.shake.intensity = 1.0; // Trigger shake
+                        gameOver();
+                    }
+
+                    // Pass player
+                    if (enemy.position.z > 5) {
+                        scene.remove(enemy);
+                        enemies.splice(i, 1);
+                        state.score += 100;
+                        document.getElementById('score').innerText = state.score;
+
+                        // Increase difficulty
+                        state.speed += 0.01;
+                    }
+                }
+            }
+
+            composer.render();
+        }
+
+        animate();
+
+        console.log("Neon Horizon initialized.");
+    </script>
 </body>
+
 </html>
